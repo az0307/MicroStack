@@ -1,4 +1,4 @@
-# 微服务架构配置模板
+# MicroStack 微服务配置模板
 app:
   name: "microstack-service"
   version: "1.0.0"

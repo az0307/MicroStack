@@ -7,7 +7,7 @@ class Config:
     """通用配置管理类"""
     
     def __init__(self, config_path: str = None):
-        self.config_path = config_path or os.getenv('CONFIG_PATH', './config/config.yaml')
+        self.config_path = config_path or os.getenv('CONFIG_PATH', '/app/config/config.yaml')
         self._config = None
     
     @lru_cache(maxsize=1)
