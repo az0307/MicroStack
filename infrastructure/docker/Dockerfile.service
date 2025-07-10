@@ -1,0 +1,27 @@
+# 微服务镜像模板
+ARG BASE_IMAGE=microstack-base:latest
+FROM ${BASE_IMAGE}
+
+# 切换到root用户进行文件操作
+USER root
+
+# 复制共享组件
+COPY shared/ /app/shared/
+
+# 复制服务代码
+ARG SERVICE_NAME
+COPY apps/${SERVICE_NAME}/ /app/
+
+# 复制配置文件
+COPY shared/config/config.yaml /app/config/config.yaml
+
+# 设置环境变量
+ENV CONFIG_PATH=/app/config/config.yaml
+ENV PYTHONPATH=/app
+
+# 切换回app用户
+RUN chown -R app:app /app
+USER app
+
+# 启动命令
+CMD ["python", "app.py"]

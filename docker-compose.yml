@@ -1,35 +1,99 @@
 version: "3.8"
 
 networks:
-  douyin_spider-network:
+  microstack-network:
     driver: bridge
 
 volumes:
-  douyin_spider_worker_log:
+  mongodb_data:
+  redis_data:
 
 services:
-  douyin-spider-worker:
-    container_name: douyin-spider-worker
-    expose:
-      - 8088
+  # API网关
+  api-gateway:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_NAME: api-gateway
+        BASE_IMAGE: microstack-base:latest
+    container_name: microstack-api-gateway
     ports:
-      - "9002:8088"
-    volumes:
-      - "douyin_spider_worker_log:/var/log"
-    image: "mirav.tencentcloudcr.com/mira/douyin-spider-worker:v0.3.1"
-    restart: always
+      - "8080:8080"
+    environment:
+      - CONFIG_PATH=/app/config/config.yaml
+      - PORT=8080
+    depends_on:
+      - redis
+      - mongodb
     networks:
-      - douyin-spider-network
-
-  douyin-user-spider-worker:
-    image: "mirav.tencentcloudcr.com/mira/douyin-spider-worker:v0.3.1"
+      - microstack-network
     restart: unless-stopped
-    deploy:
-      replicas: 3
-    command:
-      [
-        "bash",
-        "-c",
-        "conda run --no-capture-output --name douyin-spider-worker rq worker panda_spider_douyin_user_video --url redis://: --path ./ --name douyin-spider-user-worker-$$RANDOM"
-      ]
+
+  # 用户服务
+  user-service:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_NAME: user-service
+        BASE_IMAGE: microstack-base:latest
+    container_name: microstack-user-service
+    ports:
+      - "8081:8081"
+    environment:
+      - CONFIG_PATH=/app/config/config.yaml
+      - PORT=8081
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - microstack-network
+    restart: unless-stopped
+
+  # 示例服务
+  example-service:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.service
+      args:
+        SERVICE_NAME: example-service
+        BASE_IMAGE: microstack-base:latest
+    container_name: microstack-example-service
+    ports:
+      - "8082:8082"
+    environment:
+      - CONFIG_PATH=/app/config/config.yaml
+      - PORT=8082
+    networks:
+      - microstack-network
+    restart: unless-stopped
+
+  # MongoDB数据库
+  mongodb:
+    image: mongo:6.0
+    container_name: microstack-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - microstack-network
+    restart: unless-stopped
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    container_name: microstack-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - microstack-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
 
