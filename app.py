@@ -100,6 +100,13 @@ async def root():
 @app.get("/health", response_model=HealthResponse, tags=["健康检查"])
 async def health_check():
     """健康检查端点"""
+    if db:
+        try:
+            db.database.command('ping')
+        except Exception as e:
+            logger.warning(f"数据库健康检查失败: {e}")
+            raise HTTPException(status_code=503, detail="Database unavailable")
+
     return HealthResponse(
         status="healthy",
         service=config.get('app.name', 'microstack-service'),
@@ -118,7 +125,9 @@ async def get_items():
         if db:
             # 从数据库获取数据
             items_collection = db.database.items
-            items = list(items_collection.find({}, {"_id": 0}))
+            items = list(items_collection.find({}))
+            for item in items:
+                item['id'] = str(item.pop('_id'))
         else:
             # 示例数据
             items = [
