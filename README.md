@@ -70,6 +70,9 @@ pip install -r requirements.txt
 
 - **API Documentation**: http://localhost:port/docs
 - **Health Check**: http://localhost:port/health
+
+When MongoDB is configured, the health check returns HTTP 503 if it cannot
+ping the database. Without MongoDB configuration, the demo mode remains healthy.
 - **Service Status**: http://localhost:port/api/config
 
 > 🔌 Port conflicts are automatically resolved by incrementing to next available port
